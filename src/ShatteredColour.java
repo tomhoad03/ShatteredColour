@@ -8,12 +8,12 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
+import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Random;
 
@@ -26,6 +26,7 @@ public class ShatteredColour extends Application {
     private final int sizeBound = 500;
     private final Pane canvas = new Pane();
     private final ArrayList<PairedCircle> circles = new ArrayList<>();
+    private final ArrayList<Line> lines = new ArrayList<>();
 
     @Override
     public void start(Stage stage) {
@@ -84,6 +85,8 @@ public class ShatteredColour extends Application {
     public void clearCircles() {
         canvas.getChildren().removeAll(circles);
         circles.clear();
+        canvas.getChildren().removeAll(lines);
+        lines.clear();
     }
 
     public void createCircles() {
@@ -139,11 +142,19 @@ public class ShatteredColour extends Application {
                 circle1.setColoured(true);
                 circle2.setColoured(true);
 
+                Line line = new Line(circle1.getCenterX(), circle1.getCenterY(), circle2.getCenterX(), circle2.getCenterY());
+                line.setStrokeWidth(2);
+                line.setStroke(custom);
+                lines.add(line);
+
                 circles.add(circle1);
                 circles.add(circle2);
             }
         }
         canvas.getChildren().addAll(circles);
+        canvas.getChildren().addAll(lines);
+
+        // the current problem is the pairing; they are being paired with their closest available one, but this is not the best case scenario
     }
 }
 

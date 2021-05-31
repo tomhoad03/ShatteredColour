@@ -1,6 +1,7 @@
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
@@ -22,7 +23,8 @@ public class ShatteredColour extends Application {
         launch(args);
     }
 
-    private final int circleBound = 20;
+    private final int lineBound = 6; // stack overflow problems from 7/8 upwards
+    private final int circleBound = lineBound * 2;
     private final int sizeBound = 500;
     private final Pane canvas = new Pane();
     private final ArrayList<PairedCircle> circles = new ArrayList<>();
@@ -44,7 +46,7 @@ public class ShatteredColour extends Application {
         canvas.getChildren().add(board);
 
         // circles
-        createCircles();
+        createCircles(1);
 
         // title
         Label title = new Label("Shattered Colour");
@@ -55,10 +57,7 @@ public class ShatteredColour extends Application {
         Button clear = new Button("Clear Points");
 
         // button functions
-        reset.setOnMouseClicked(e -> {
-            clearCircles();
-            createCircles();
-        });
+        reset.setOnMouseClicked(e -> createCircles(1));
         clear.setOnMouseClicked(e -> clearCircles());
 
         // top menu
@@ -89,7 +88,14 @@ public class ShatteredColour extends Application {
         lines.clear();
     }
 
-    public void createCircles() {
+    public void createCircles(int stackCount) {
+        if (stackCount < 1000) {
+            clearCircles();
+        } else {
+            System.out.println("Stack overflow error!");
+            return;
+        }
+
         Random rand = new Random();
         ArrayList<PairedCircle> uncolouredCircles = new ArrayList<>();
 
@@ -151,10 +157,59 @@ public class ShatteredColour extends Application {
                 circles.add(circle2);
             }
         }
+        for (Line line1 : lines) {
+            for (Line line2 : lines) {
+                if (line1 != line2) {
+                    if (doIntersect(line1, line2)) {
+                        createCircles(stackCount + 1);
+                        return;
+                    }
+                }
+            }
+        }
         canvas.getChildren().addAll(circles);
         canvas.getChildren().addAll(lines);
 
         // the current problem is the pairing; they are being paired with their closest available one, but this is not the best case scenario
+    }
+
+    public boolean doIntersect(Line line1, Line line2) {
+        // gradients
+        double line1Grad = (line1.getStartY() - line1.getEndY()) / (line1.getStartX() - line1.getEndX());
+        double line2Grad = (line2.getStartY() - line2.getEndY()) / (line2.getStartX() - line2.getEndX());
+
+        // check if parallel
+        if (line1Grad == line2Grad) {
+            return false;
+        }
+
+        // y intercepts
+        double line1Intercept = line1.getStartY() - (line1Grad * line1.getStartX());
+        double line2Intercept = line2.getStartY() - (line2Grad * line2.getStartX());
+
+        // x and y
+        double x = (line1Intercept - line2Intercept) / (line2Grad - line1Grad);
+        double y = (line1Grad * x) + line1Intercept;
+
+        if (line1.getStartX() > line1.getEndX()) {
+            if (x > line1.getStartX() || x < line1.getEndX()) {
+                return false;
+            }
+        } else {
+            if (x < line1.getStartX() || x > line1.getEndX()) {
+                return false;
+            }
+        }
+        if (line1.getStartY() > line1.getEndY()) {
+            if (y > line1.getStartY() || y < line1.getEndY()) {
+                return false;
+            }
+        } else {
+            if (y < line1.getStartY() || y > line1.getEndY()) {
+                return false;
+            }
+        }
+        return true;
     }
 }
 

@@ -1,5 +1,7 @@
 import javafx.application.Application;
+import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
@@ -14,6 +16,7 @@ import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Random;
@@ -23,7 +26,9 @@ public class ShatteredColour extends Application {
         launch(args);
     }
 
-    private final int lineBound = 6; // stack overflow problems from 7/8 upwards
+    private boolean result = false;
+    private final int timeout = 5;
+    private final int lineBound = 8; // stack overflow problems from 7/8 upwards
     private final int circleBound = lineBound * 2;
     private final int sizeBound = 500;
     private final Pane canvas = new Pane();
@@ -45,8 +50,8 @@ public class ShatteredColour extends Application {
         canvas.setMaxHeight(sizeBound);
         canvas.getChildren().add(board);
 
-        // circles
-        createCircles(1);
+        // lines
+        createLines();
 
         // title
         Label title = new Label("Shattered Colour");
@@ -57,7 +62,7 @@ public class ShatteredColour extends Application {
         Button clear = new Button("Clear Points");
 
         // button functions
-        reset.setOnMouseClicked(e -> createCircles(1));
+        reset.setOnMouseClicked(e -> createLines());
         clear.setOnMouseClicked(e -> clearCircles());
 
         // top menu
@@ -81,6 +86,26 @@ public class ShatteredColour extends Application {
         stage.show();
     }
 
+    // attempts to create a valid set of lines
+    public void createLines() {
+        LocalDateTime timeoutTime = LocalDateTime.now().plusSeconds(timeout);
+        do {
+            if (!LocalDateTime.now().isAfter(timeoutTime)) {
+                result = createCircles();
+            } else {
+                break;
+            }
+        } while (!result);
+
+        // displays timeout error
+        if (!result) {
+            Alert timeoutAlert = new Alert(Alert.AlertType.ERROR);
+            timeoutAlert.setTitle("Timeout!");
+            timeoutAlert.show();
+        }
+    }
+
+    // clears the lines and circles
     public void clearCircles() {
         canvas.getChildren().removeAll(circles);
         circles.clear();
@@ -88,14 +113,9 @@ public class ShatteredColour extends Application {
         lines.clear();
     }
 
-    public void createCircles(int stackCount) {
-        if (stackCount < 1000) {
-            clearCircles();
-        } else {
-            System.out.println("Stack overflow error!");
-            return;
-        }
-
+    // creates the lines and circles
+    public boolean createCircles() {
+        clearCircles();
         Random rand = new Random();
         ArrayList<PairedCircle> uncolouredCircles = new ArrayList<>();
 
@@ -157,20 +177,23 @@ public class ShatteredColour extends Application {
                 circles.add(circle2);
             }
         }
+
+        // creates lines
         for (Line line1 : lines) {
             for (Line line2 : lines) {
                 if (line1 != line2) {
                     if (doIntersect(line1, line2)) {
-                        createCircles(stackCount + 1);
-                        return;
+                        clearCircles();
+                        return false;
                     }
                 }
             }
         }
+
+        // displays the lines
         canvas.getChildren().addAll(circles);
         canvas.getChildren().addAll(lines);
-
-        // the current problem is the pairing; they are being paired with their closest available one, but this is not the best case scenario
+        return true;
     }
 
     public boolean doIntersect(Line line1, Line line2) {
@@ -191,25 +214,32 @@ public class ShatteredColour extends Application {
         double x = (line1Intercept - line2Intercept) / (line2Grad - line1Grad);
         double y = (line1Grad * x) + line1Intercept;
 
-        if (line1.getStartX() > line1.getEndX()) {
-            if (x > line1.getStartX() || x < line1.getEndX()) {
-                return false;
-            }
-        } else {
-            if (x < line1.getStartX() || x > line1.getEndX()) {
-                return false;
-            }
-        }
-        if (line1.getStartY() > line1.getEndY()) {
-            if (y > line1.getStartY() || y < line1.getEndY()) {
-                return false;
-            }
-        } else {
-            if (y < line1.getStartY() || y > line1.getEndY()) {
-                return false;
-            }
-        }
+        // check if segments intersect
+        if (checkIntersect(line1, x, y)) return false;
+        if (checkIntersect(line2, x, y)) return false;
         return true;
+    }
+
+    private boolean checkIntersect(Line line2, double x, double y) {
+        if (line2.getStartX() > line2.getEndX()) {
+            if (x > line2.getStartX() || x < line2.getEndX()) {
+                return true;
+            }
+        } else {
+            if (x < line2.getStartX() || x > line2.getEndX()) {
+                return true;
+            }
+        }
+        if (line2.getStartY() > line2.getEndY()) {
+            if (y > line2.getStartY() || y < line2.getEndY()) {
+                return true;
+            }
+        } else {
+            if (y < line2.getStartY() || y > line2.getEndY()) {
+                return true;
+            }
+        }
+        return false;
     }
 }
 
